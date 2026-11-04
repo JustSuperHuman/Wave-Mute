@@ -21,15 +21,24 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Test
         run: dotnet test WaveMute.sln -c Release --nologo
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { throw 'Inno Setup installation failed.' }
+          }
       - name: Package
         shell: pwsh
         run: |
-          $version = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { '0.1.0' }
+          $version = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { '0.1.1' }
           ./scripts/Build-Release.ps1 -Version $version
+          ./scripts/Test-Installer.ps1 -Version $version
       - uses: actions/upload-artifact@v4
         with:
           name: WaveMute-win-x64
           path: |
+            artifacts/*-Setup.exe
             artifacts/*.zip
             artifacts/*.sha256
       - name: Release
@@ -38,5 +47,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          $assets = Get-ChildItem artifacts -File | Where-Object Extension -in '.zip', '.sha256' | ForEach-Object FullName
-          gh release create $env:GITHUB_REF_NAME @assets --verify-tag --title "Wave Mute $env:GITHUB_REF_NAME" --generate-notes
+          $assets = Get-ChildItem artifacts -File | Where-Object Extension -in '.exe', '.zip', '.sha256' | ForEach-Object FullName
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          $notes = @"
+          Download **WaveMute-$version-Setup.exe** and run it. Setup installs for your Windows account without administrator access, enables **Start with Windows** by default, and offers to launch Wave Mute immediately.
+
+          Upgrade by running the new installer. Remove Wave Mute from Windows Settings > Apps; uninstall also removes its startup entry. The ZIP is available for portable use.
+          "@
+          $notes | Set-Content -LiteralPath artifacts/release-notes.md -Encoding utf8
+          gh release create $env:GITHUB_REF_NAME @assets --verify-tag --title "Wave Mute $env:GITHUB_REF_NAME" --notes-file artifacts/release-notes.md --generate-notes
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub release creation failed.' }

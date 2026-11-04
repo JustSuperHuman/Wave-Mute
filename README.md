@@ -2,9 +2,13 @@
 
 Sync your Elgato Wave:3 mute button with Discord, both ways.
 
-1. Download the ZIP from [Releases](https://github.com/JustSuperHuman/Wave-Mute/releases/latest).
-2. Extract it and run **WaveMute.exe**.
+1. Download **WaveMute-0.1.1-Setup.exe** from [Releases](https://github.com/JustSuperHuman/Wave-Mute/releases/latest).
+2. Run the installer. Leave **Start Wave Mute when I sign in to Windows** checked, then launch the app at the end of setup.
 3. Keep Discord open. Tap the mic's mute sensor or toggle mute in Discord.
+
+Setup installs to `%LOCALAPPDATA%\Programs\WaveMute` for your Windows account without administrator access. It adds a Start menu shortcut and starts Wave Mute when you sign in. Run a newer installer to upgrade; it remembers your startup choice. To change that choice, rerun setup. Uninstall from **Windows Settings > Apps** to remove the app and its startup entry.
+
+For portable use, download the ZIP, extract it, and run **WaveMute.exe**. The portable version does not add itself to Windows startup.
 
 The tray icon is red when muted, green when unmuted, and gray when paused or disconnected. Right-click it to pause, reconnect, or exit.
 
@@ -12,11 +16,13 @@ Requires Windows 10/11 x64, a first-generation Wave:3, and Discord desktop in En
 
 Mute wins if the states disagree when connecting. Deafen keeps the mic muted. Closing Discord to its tray or opening Settings can hide its controls; reopen the main window to reconnect. Other Wave control apps may need to be closed. Minimizing support depends on Discord exposing its controls.
 
-To build with the .NET 10 SDK:
+To build with the .NET 10 SDK and [Inno Setup 6](https://jrsoftware.org/isinfo.php):
 
 ```powershell
 dotnet test WaveMute.sln -c Release
-./scripts/Build-Release.ps1
+./scripts/Build-Release.ps1 -Version 0.1.1
 ```
+
+The build creates the installer, portable ZIP, and SHA-256 checksums in `artifacts/`. `-InnoSetupCompiler` can specify an `ISCC.exe` path. On a clean Windows account, `./scripts/Test-Installer.ps1 -Version 0.1.1` verifies installation, startup preferences, upgrades while running, and uninstall cleanup. GitHub Actions runs these checks and publishes both packages when a `v*` tag is pushed.
 
 Uses WinUSB and [FlaUI](https://github.com/FlaUI/FlaUI). [Wave:3 protocol reference](https://github.com/LukasParke/wave3-research/blob/main/WAVE3_PROTOCOL_SUMMARY.md).
